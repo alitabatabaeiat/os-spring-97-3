@@ -3,7 +3,10 @@
 #include <vector>
 #include <fstream>
 #include <algorithm>
+#include <math.h>
 using namespace std;
+
+#define PI 3.14159265
 
 vector<int> extract_int(string str, string delimiter) {
   vector<int> res;
