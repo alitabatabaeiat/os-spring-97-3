@@ -1,7 +1,5 @@
 #include "util.h"
 
-void log(string txt) { cerr << txt << endl; }
-
 vector<vector<int> > read_inputs() {
   ifstream file("./inputs.txt");
   vector<vector<int> > res;
