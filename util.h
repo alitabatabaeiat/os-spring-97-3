@@ -8,11 +8,10 @@
 #include <fstream>
 #include <semaphore.h>
 #include <pthread.h>
+#include <algorithm>
 using namespace std;
 
 #define PI 3.14159265
-// typedef void *(*start_routine)(void *);
-
 
 pthread_t create_thread(void *(*start_routine)(void *), void *arg);
 vector<int> extract_int(string str, string delimiter);

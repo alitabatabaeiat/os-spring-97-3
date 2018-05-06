@@ -2,7 +2,7 @@
 
 pthread_t create_thread(void *(*start_routine)(void *), void *arg) {
   pthread_t thread;
-  if (pthread_create(&thread, NULL, start_routine, NULL) != 0) {
+  if (pthread_create(&thread, NULL, start_routine, arg) != 0) {
     cout << "ERR! pthread_create!" << endl;
     return (pthread_t) NULL;
   }

@@ -1,19 +1,20 @@
 CC = g++
-CFLAG = -c
+THREAD = -pthread
+FLAGS = -c $(THREAD)
 
-ALL.O = thread_routine.o util.o main.o
+ALL.O = util.o thread_routine.o main.o
 
 all: $(ALL.O)
-	$(CC) thread_routine.o util.o main.o -o prog
+	$(CC) $(THREAD) $(ALL.O) -o prog
 
 util.o: util.cpp util.h
-	$(CC) $(CFLAG) util.cpp
+	$(CC) $(FLAGS) util.cpp
 
-thread_routine.o: thread_routine.cpp thread_routine.h util.h util.o
-	$(CC) $(CFLAG) thread_routine.cpp
+thread_routine.o: thread_routine.cpp thread_routine.h util.h
+	$(CC) $(FLAGS) thread_routine.cpp
 
-main.o: main.cpp util.h util.o thread_routine.h thread_routine.o
-	$(CC) $(CFLAG) main.cpp
+main.o: main.cpp util.h thread_routine.h
+	$(CC) $(FLAGS) main.cpp
 
 clean:
-	rm *.o *.out
+	rm *.o *.out prog
