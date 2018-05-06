@@ -1,26 +1,6 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <fstream>
-#include <algorithm>
-#include <math.h>
-using namespace std;
+#include "util.h"
 
-#define PI 3.14159265
-
-vector<int> extract_int(string str, string delimiter) {
-  vector<int> res;
-  if (str.empty())
-    return res;
-  int pos;
-  while ((pos = str.find(delimiter)) != -1) {
-    string token = str.substr(0, pos);
-    str.erase(0, pos + delimiter.length());
-    res.push_back(atoi(token.c_str()));
-  }
-  res.push_back(atoi(str.c_str()));
-  return res;
-}
+void log(string txt) { cerr << txt << endl; }
 
 vector<vector<int> > read_inputs() {
   ifstream file("./inputs.txt");
@@ -56,5 +36,19 @@ vector<int> read_weights_and_bias() {
         is_bias = true;
     }
   }
+  return res;
+}
+
+vector<int> extract_int(string str, string delimiter) {
+  vector<int> res;
+  if (str.empty())
+    return res;
+  int pos;
+  while ((pos = str.find(delimiter)) != -1) {
+    string token = str.substr(0, pos);
+    str.erase(0, pos + delimiter.length());
+    res.push_back(atoi(token.c_str()));
+  }
+  res.push_back(atoi(str.c_str()));
   return res;
 }

@@ -1,4 +1,4 @@
-#include "util.cpp"
+#include "util.h"
 
 int main(int argc, char const *argv[]) {
   vector<int> weights = read_weights_and_bias();
