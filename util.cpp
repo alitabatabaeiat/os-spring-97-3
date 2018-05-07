@@ -9,6 +9,12 @@ pthread_t create_thread(void *(*start_routine)(void *), void *arg) {
   return thread;
 }
 
+void print(string txt, sem_t *console) {
+  sem_wait(console);
+  cout << txt << endl;
+  sem_post(console);
+}
+
 vector<vector<int> > read_inputs() {
   ifstream file("./inputs.txt");
   vector<vector<int> > res;
