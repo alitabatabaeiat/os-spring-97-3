@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <algorithm>
 #include <sstream>
+#include <math.h>
 using namespace std;
 
 #define PI 3.14159265
