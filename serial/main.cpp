@@ -13,13 +13,9 @@ int main(int argc, char const *argv[]) {
     for (int j = 0; j < inputs[i].size(); j++)
       sum += weights[j] * inputs[i][j];
     sum += bias;
-    cout << "----------------------" << endl;
-    cout << "sum = " << sum << endl;
-    cout << "out =" << (double)atan(sum) << endl;
-    double row_res = atan(sum) * 180 / PI;
     ofstream file("output.txt", ofstream::app);
     if (file.is_open())
-      file << row_res << endl;
+      file << atan(sum) << endl;
   }
   return 0;
 }

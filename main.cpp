@@ -13,7 +13,6 @@ using namespace std;
 #define PI 3.14159265
 #define NUM_OF_INPUTS 128
 
-sem_t end_sem;
 sem_t output_sem;
 sem_t console_sem;
 sem_t bias_sem;
@@ -47,7 +46,6 @@ int main(int argc, char const *argv[]) {
   mid_val.resize(mid_threads_num, 0.0);
   end_prog = false;
 
-  sem_init(&end_sem, 0, 1);
   sem_init(&output_sem, 0, 1);
   sem_init(&console_sem, 0, 1);
   sem_init(&bias_sem, 0, 1);
@@ -64,13 +62,15 @@ int main(int argc, char const *argv[]) {
     sem_init(&sem_o, 0, 1);
     mid_sem_o.push_back(sem_o);
   }
-
-  // inputs thread
-  sem_wait(&end_sem);
   for (int i = 0; i < mid_threads_num; i++) {
     sem_wait(&mid_sem_i[i]);
     sem_wait(&mid_sem_o[i]);
   }
+  sem_wait(&bias_sem);
+  for (int i = 0; i < mid_threads_num; i++)
+    sem_wait(&mid_sem_w[i]);
+
+  // inputs thread
   pthread_t inputs_thread = create_thread(inputs_routine, NULL);
   if (inputs_thread == NULL) {
     cout << "ERR! inputs_thread creation error" << endl;
@@ -78,9 +78,6 @@ int main(int argc, char const *argv[]) {
   }
 
   // weights thread
-  sem_wait(&bias_sem);
-  for (int i = 0; i < mid_threads_num; i++)
-    sem_wait(&mid_sem_w[i]);
   pthread_t weights_thread = create_thread(weights_routine, NULL);
   if (weights_thread == NULL) {
     cout << "ERR! weights_thread creation error" << endl;
@@ -145,19 +142,18 @@ void* inputs_routine(void *arg) {
       vector<double> input_row;
       string s;
       while(getline(file, s, ',')) {
-        // cout << s << endl;
-        if (!start_r && s.find('{') != -1) {
+        if (!start_r && s.find('{') != string::npos) {
           start_r = true;
           s.erase(0, s.find('{') + 1);
           s.erase(0, s.find('{') + 1);
           if (s.size() > 0)
             input_row.push_back(stod(s));
-        } else if (start_r && s.find('}') == -1) {
+        } else if (start_r && s.find('}') == string::npos) {
           input_row.push_back(stod(s));
-        } else if (start_r && s.find('}') != -1) {
+        } else if (start_r && s.find('}') != string::npos) {
           start_r = false;
           string remain = s.substr(s.find('}') + 1);
-          if (remain.size() > 0 && remain.find('}') != -1)
+          if (remain.size() > 0 && remain.find('}') != string::npos)
             end_prog = true;
           s.erase(s.find('}'));
           if (s.size() > 0)
@@ -169,13 +165,11 @@ void* inputs_routine(void *arg) {
         } else if (r_c == 0 && input_row.size() == share) break;
       }
       inputs.push_back(input_row);
-      sem_post(&end_sem);
       sem_post(&mid_sem_i[i]);
     }
   }
-  inputs.clear();
-  sem_post(&mid_sem_i[i]);
-  cout << "########" << endl;
+  for (int i = 0; i < mid_threads_num; i++)
+    sem_post(&mid_sem_i[i]);
 }
 
 void* weights_routine(void *arg) {
@@ -193,14 +187,14 @@ void* weights_routine(void *arg) {
     vector<double> weight_row;
     string s;
     while(getline(file, s, ',')) {
-      if (!start && s.find('{') != -1) {
+      if (!start && s.find('{') != string::npos) {
         start = true;
         s.erase(0, s.find('{') + 1);
         if (s.size() > 0)
           weight_row.push_back(stod(s));
-      } else if (start && s.find('}') == -1) {
+      } else if (start && s.find('}') == string::npos) {
         weight_row.push_back(stod(s));
-      } else if (start && s.find('}') != -1) {
+      } else if (start && s.find('}') != string::npos) {
         start = false;
         string x = s.substr(0, s.find('}'));
         string b = s.substr(s.find("bias"));
@@ -227,17 +221,8 @@ void* mid_routine(void *arg) {
   sem_post(&console_sem);
 
   while (true) {
-    sem_wait(&console_sem);
-    cout << (end_prog ? "true" : "false") << " " << *id << endl;
-    sem_post(&console_sem);
-    sem_wait(&end_sem);
-    // cout << (end_prog ? "true" : "false") << " " << *id << endl;
-    if (end_prog) break;
-    sem_post(&end_sem);
-    cout << "^ " << *id << endl;
     sem_wait(&mid_sem_i[*id]);
     sem_wait(&mid_sem_w[*id]);
-    sem_wait(&console_sem);
     vector<double> w = weights[*id];
     vector<double> inp = inputs[*id];
     double sum = 0;
@@ -247,10 +232,9 @@ void* mid_routine(void *arg) {
     sem_post(&mid_sem_o[*id]);
     sem_post(&mid_sem_w[*id]);
     sem_post(&console_sem);
+    if (end_prog) break;
   }
-  sem_post(&end_sem);
-
-  cout << "^^^^^^^^^^^^^ " << *id << endl;
+  sem_post(&mid_sem_o[*id]);
 }
 
 void* output_routine(void *arg) {
@@ -258,10 +242,9 @@ void* output_routine(void *arg) {
   cout << "output thread created with id " << pthread_self() << endl;
   sem_post(&console_sem);
 
+  ofstream file("output.txt", ofstream::app);
+
   while (true) {
-    sem_wait(&end_sem);
-    if (end_prog) break;
-    // sem_post(&end_sem);
     double sum = 0;
     for (int i = 0; i < mid_threads_num; i++) {
       sem_wait(&mid_sem_o[i]);
@@ -270,19 +253,11 @@ void* output_routine(void *arg) {
     sem_wait(&bias_sem);
     sum += bias;
     sem_post(&bias_sem);
-    sem_wait(&console_sem);
-    cout << sum << endl;
-    cout << atan(sum) << endl;
-    sem_post(&console_sem);
+    if (file.is_open())
+      file << atan(sum) << endl;
     sem_post(&output_sem);
-
-    // for (int i = 0 ; i < mid_threads_num; i++) {
-    //   sem_wait(&mid_sem_i[i]);
-    //   sem_wait(&mid_sem_o[i]);
-    // }
+    if (end_prog) break;
   }
-
-  cout << "DONEEEEEEEE  ###$$\$$" << endl;
 }
 
 pthread_t create_thread(void *(*start_routine)(void *), void *arg) {
